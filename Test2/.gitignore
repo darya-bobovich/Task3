@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+*.suo
+*.user
+packages/
+*.mdf
+*.ldf
+*.ndf
+*.log
+appsettings.Development.json
+appsettings.Local.json
+export_*.xlsx
+export_*.xml
