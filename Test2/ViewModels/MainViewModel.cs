@@ -1,11 +1,8 @@
-﻿using Microsoft.Win32;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
-using System.Xml.Linq;
 using Test2.Data;
 using Test2.Helpers;
 using Test2.Model;
@@ -14,126 +11,256 @@ namespace Test2.ViewModels
 {
     public class MainViewModel : INotifyPropertyChanged
     {
-        private ObservableCollection<TaskModel> _tasks;
-        public ObservableCollection<TaskModel> Tasks
+        private readonly IRepository<TaskModel> _repository;
+        private ObservableCollection<TaskModel> _allTasks;
+        private ObservableCollection<TaskModel> _displayedTasks; 
+        private FilterViewModel _filter;
+        private string _statusText = "Готов к работе";
+
+        public ObservableCollection<TaskModel> DisplayedTasks
         {
-            get => _tasks;
-            set
+            get => _displayedTasks;
+            private set
             {
-                _tasks = value;
+                _displayedTasks = value;
                 OnPropertyChanged();
             }
         }
 
+        public FilterViewModel Filter
+        {
+            get => _filter;
+            set { _filter = value; OnPropertyChanged(); }
+        }
+
+        public string StatusText
+        {
+            get => _statusText;
+            set { _statusText = value; OnPropertyChanged(); }
+        }
+
         public ICommand ImportCommand { get; }
-        public ICommand ExportCommand { get; }
+        public ICommand ExportToXmlCommand { get; }
+        public ICommand ExportToExcelCommand { get; }
+        public ICommand ApplyFilterCommand { get; }
+        public ICommand ResetFilterCommand { get; }
 
         public MainViewModel()
         {
-            LoadTasks();
-            ImportCommand = new DelegateCommand(Import);
-            ExportCommand = new DelegateCommand(Export);
+            _repository = new SqlTaskRepository();
+            _allTasks = new ObservableCollection<TaskModel>();
+            DisplayedTasks = new ObservableCollection<TaskModel>();  
+            Filter = new FilterViewModel();
+
+            ImportCommand = new AsyncDelegateCommand(async _ => await ImportAsync());
+            ExportToXmlCommand = new AsyncDelegateCommand(async _ => await ExportToXmlAsync());
+            ExportToExcelCommand = new AsyncDelegateCommand(async _ => await ExportToExcelAsync());
+            ApplyFilterCommand = new DelegateCommand(ApplyFilter);
+            ResetFilterCommand = new DelegateCommand(ResetFilter);
+
+            LoadTasksAsync();
         }
 
-        public void LoadTasks()
+        private async Task LoadTasksAsync()
         {
-            using (var db = new AppDbContext())
+            StatusText = "Загрузка данных...";
+            var tasks = await _repository.GetAllAsync();
+
+            _allTasks.Clear();
+            foreach (var task in tasks)
             {
-                db.Database.EnsureCreated();
-                var tasksFromDb = db.TaskModels.ToList();
-                Tasks = new ObservableCollection<TaskModel>(tasksFromDb);
+                _allTasks.Add(task);
+            }
+
+            DisplayedTasks.Clear();
+            foreach (var task in _allTasks)
+            {
+                DisplayedTasks.Add(task);
+            }
+
+            StatusText = $"Всего записей: {_allTasks.Count}";
+        }
+
+        private void ApplyFilter()
+        {
+            StatusText = "Применение фильтра...";
+
+            var filtered = _allTasks.AsEnumerable();
+
+            if (Filter.Date.HasValue)
+            {
+                filtered = filtered.Where(t => t.Date.Date == Filter.Date.Value.Date);
+            }
+
+            if (!string.IsNullOrWhiteSpace(Filter.Name))
+            {
+                filtered = filtered.Where(t => t.Name != null &&
+                    t.Name.Contains(Filter.Name, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(Filter.LastName))
+            {
+                filtered = filtered.Where(t => t.LastName != null &&
+                    t.LastName.Contains(Filter.LastName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(Filter.MiddleName))
+            {
+                filtered = filtered.Where(t => t.MiddleName != null &&
+                    t.MiddleName.Contains(Filter.MiddleName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(Filter.City))
+            {
+                filtered = filtered.Where(t => t.City != null &&
+                    t.City.Contains(Filter.City, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(Filter.Country))
+            {
+                filtered = filtered.Where(t => t.Country != null &&
+                    t.Country.Contains(Filter.Country, StringComparison.OrdinalIgnoreCase));
+            }
+
+            DisplayedTasks.Clear();
+            foreach (var item in filtered)
+            {
+                DisplayedTasks.Add(item);
+            }
+
+            UpdateStatusText();
+        }
+
+        private void ResetFilter()
+        {
+            Filter.Reset();
+
+            DisplayedTasks.Clear();
+            foreach (var task in _allTasks)
+            {
+                DisplayedTasks.Add(task);
+            }
+
+            StatusText = $"Всего записей: {_allTasks.Count}";
+        }
+
+        private void UpdateStatusText()
+        {
+            if (Filter.HasFilters)
+            {
+                StatusText = $"Найдено {DisplayedTasks.Count} из {_allTasks.Count} записей (применены фильтры)";
+            }
+            else
+            {
+                StatusText = $"Всего записей: {DisplayedTasks.Count}";
             }
         }
 
-        private void Import()
+        private async Task ImportAsync()
         {
-            var openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "CSV файлы (*.csv)|*.csv|Все файлы (*.*)|*.*";
-            openFileDialog.Title = "Выберите CSV файл для импорта";
-
-            if (openFileDialog.ShowDialog() == true)
+            var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                var lines = File.ReadAllLines(openFileDialog.FileName);
-                var newTasks = new List<TaskModel>();
+                Filter = "CSV файлы (*.csv)|*.csv|Все файлы (*.*)|*.*",
+                Title = "Выберите CSV файл для импорта"
+            };
 
-                foreach (var line in lines)
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                StatusText = "Импорт данных...";
+                var importer = new Import();
+                var newTasks = await importer.ParseAsync(dialog.FileName);
+
+                if (newTasks.Any())
                 {
-                    var parts = line.Split(';');
-                    if (parts.Length >= 6)
-                    {
-                        newTasks.Add(new TaskModel
-                        {
-                            Date = DateTime.Parse(parts[0]),
-                            Name = parts[1],
-                            LastName = parts[2],
-                            MiddleName = parts[3],
-                            City = parts[4],
-                            Country = parts[5]
-                        });
-                    }
-                }
+                    await _repository.AddRangeAsync(newTasks);
+                    await _repository.SaveAsync();
+                    await LoadTasksAsync();  
 
-                using (var db = new AppDbContext())
-                {
-                    db.TaskModels.AddRange(newTasks);
-                    db.SaveChanges();
+                    MessageBox.Show($"Импортировано {newTasks.Count} записей", "Успех",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-
-                LoadTasks();
-                System.Windows.MessageBox.Show($"Импортировано {newTasks.Count} записей");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при импорте: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText = "Ошибка при импорте";
             }
         }
 
-        private void Export()
+        private async Task ExportToXmlAsync()
         {
-            if (Tasks == null || Tasks.Count == 0)
+            if (!DisplayedTasks.Any())
             {
-                System.Windows.MessageBox.Show("Нет данных для экспорта", "Предупреждение",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Нет данных для экспорта",
+                    "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            var saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "XML файлы (*.xml)|*.xml|Все файлы (*.*)|*.*";
-            saveFileDialog.Title = "Сохранить XML файл";
-            saveFileDialog.DefaultExt = "xml";
-            saveFileDialog.FileName = $"TasksExport_{DateTime.Now:yyyyMMdd_HHmmss}.xml";
-
-            if (saveFileDialog.ShowDialog() == true)
+            var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                try
-                {
-                    XElement root = new XElement("Tasks");
+                Filter = "XML файлы (*.xml)|*.xml|Все файлы (*.*)|*.*",
+                Title = "Сохранить XML файл",
+                DefaultExt = "xml",
+                FileName = $"TasksExport_{DateTime.Now:yyyyMMdd_HHmmss}.xml"
+            };
 
-                    foreach (var task in Tasks)
-                    {
-                        XElement taskElement = new XElement("Task",
-                            new XElement("Id", task.Id),
-                            new XElement("Date", task.Date.ToString("yyyy-MM-dd HH:mm:ss")),
-                            new XElement("Name", task.Name ?? ""),
-                            new XElement("LastName", task.LastName ?? ""),
-                            new XElement("MiddleName", task.MiddleName ?? ""),
-                            new XElement("City", task.City ?? ""),
-                            new XElement("Country", task.Country ?? "")
-                        );
-                        root.Add(taskElement);
-                    }
+            if (dialog.ShowDialog() != true) return;
 
-                    XDocument xmlDoc = new XDocument(
-                        new XDeclaration("1.0", "utf-8", null),
-                        root
-                    );
+            try
+            {
+                StatusText = "Экспорт в XML...";
+                var xmlExporter = new XmlExporter();
+                await xmlExporter.ExportAsync(DisplayedTasks, dialog.FileName);
 
-                    xmlDoc.Save(saveFileDialog.FileName);
+                MessageBox.Show($"Экспортировано {DisplayedTasks.Count} записей в файл:\n{dialog.FileName}",
+                    "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusText = $"Экспортировано {DisplayedTasks.Count} записей в XML";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при экспорте в XML: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText = "Ошибка при экспорте в XML";
+            }
+        }
 
-                    System.Windows.MessageBox.Show($"Экспортировано {Tasks.Count} записей в файл:\n{saveFileDialog.FileName}",
-                        "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show($"Ошибка при экспорте: {ex.Message}",
-                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+        private async Task ExportToExcelAsync()
+        {
+            if (!DisplayedTasks.Any())
+            {
+                MessageBox.Show("Нет данных для экспорта",
+                    "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Excel файлы (*.xlsx)|*.xlsx|Все файлы (*.*)|*.*",
+                Title = "Сохранить Excel файл",
+                DefaultExt = "xlsx",
+                FileName = $"TasksExport_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
+            };
+
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                StatusText = "Экспорт в Excel...";
+                var excelExporter = new ExcelExporter();
+                await excelExporter.ExportAsync(DisplayedTasks, dialog.FileName);
+
+                MessageBox.Show($"Экспортировано {DisplayedTasks.Count} записей в файл:\n{dialog.FileName}",
+                    "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusText = $"Экспортировано {DisplayedTasks.Count} записей в Excel";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при экспорте в Excel: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText = "Ошибка при экспорте в Excel";
             }
         }
 

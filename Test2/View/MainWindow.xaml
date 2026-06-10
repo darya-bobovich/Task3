@@ -6,15 +6,92 @@
         xmlns:viewmodels="clr-namespace:Test2.ViewModels"
         xmlns:local="clr-namespace:Test2"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-
+        Title="MainWindow" Height="450" Width="850">
+    
     <Grid>
-        <Canvas Margin="-6,38,6,408">
-            <Button x:Name="Button1" Width="150" Height="30" Command="{Binding ImportCommand}" Content="Импорт" FontSize="13"
-                    Canvas.Left="88" Canvas.Top="37" />
-            <Button x:Name="Button2" Width="150" Height="30"   Command="{Binding ExportCommand}" Content="Экспорт в XML" FontSize="13"
-                    Canvas.Left="522" Canvas.Top="37" />
+        <Border BorderBrush="#CCCCCC" BorderThickness="1" 
+                CornerRadius="5" Padding="10" Margin="10,10,10,0"
+                Background="#F5F5F5" Height="130" VerticalAlignment="Top">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Дата:" VerticalAlignment="Center" Margin="5" Grid.Row="0" Grid.Column="0"/>
+                <DatePicker SelectedDate="{Binding Filter.Date, Mode=TwoWay}"
+                            Width="120" Margin="5" Grid.Row="0" Grid.Column="1"/>
+
+                <TextBlock Text="Имя:" VerticalAlignment="Center" Margin="5" Grid.Row="0" Grid.Column="2"/>
+                <TextBox Text="{Binding Filter.Name, UpdateSourceTrigger=PropertyChanged, Delay=500}"
+                         Width="120" Margin="5" Grid.Row="0" Grid.Column="3"/>
+
+                <TextBlock Text="Фамилия:" VerticalAlignment="Center" Margin="5" Grid.Row="0" Grid.Column="4"/>
+                <TextBox Text="{Binding Filter.LastName, UpdateSourceTrigger=PropertyChanged, Delay=500}"
+                         Width="120" Margin="5" Grid.Row="0" Grid.Column="5"/>
+
+                <TextBlock Text="Отчество:" VerticalAlignment="Center" Margin="5" Grid.Row="1" Grid.Column="0"/>
+                <TextBox Text="{Binding Filter.MiddleName, UpdateSourceTrigger=PropertyChanged, Delay=500}"
+                         Width="120" Margin="5" Grid.Row="1" Grid.Column="1"/>
+
+                <TextBlock Text="Город:" VerticalAlignment="Center" Margin="5" Grid.Row="1" Grid.Column="2"/>
+                <TextBox Text="{Binding Filter.City, UpdateSourceTrigger=PropertyChanged, Delay=500}"
+                         Width="120" Margin="5" Grid.Row="1" Grid.Column="3"/>
+
+                <TextBlock Text="Страна:" VerticalAlignment="Center" Margin="5" Grid.Row="1" Grid.Column="4"/>
+                <TextBox Text="{Binding Filter.Country, UpdateSourceTrigger=PropertyChanged, Delay=500}"
+                         Width="120" Margin="5" Grid.Row="1" Grid.Column="5"/>
+
+                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="6" 
+                            Orientation="Horizontal" HorizontalAlignment="Center" Margin="5">
+
+                    <Button x:Name="Фильтр" Width="80" Height="25" Margin="5"  
+                     Command="{Binding ApplyFilterCommand}" 
+                     Content="Фильтр" FontSize="13"
+                     Canvas.Left="430" Canvas.Top="37" />
+
+                    <Button x:Name="Сбросить" Width="80" Height="25" Margin="5"  
+                     Command="{Binding ResetFilterCommand}" 
+                     Content="Сбросить" FontSize="13"
+                     Canvas.Left="430" Canvas.Top="37" />
+                    
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Canvas Margin="-6,158,6,408">
+            <Button x:Name="ButtonImport" Width="150" Height="30" 
+                    Command="{Binding ImportCommand}" 
+                    Content="Импорт CSV" FontSize="13"
+                    Canvas.Left="30" Canvas.Top="37" />
+
+            <Button x:Name="ButtonExportXml" Width="150" Height="30"   
+                    Command="{Binding ExportToXmlCommand}" 
+                    Content="Экспорт в XML" FontSize="13"
+                    Canvas.Left="230" Canvas.Top="37" />
+
+            <Button x:Name="ButtonExportExcel" Width="150" Height="30"   
+                    Command="{Binding ExportToExcelCommand}" 
+                    Content="Экспорт в Excel" FontSize="13"
+                    Canvas.Left="430" Canvas.Top="37" />
         </Canvas>
-        <DataGrid ItemsSource="{Binding Tasks}" AutoGenerateColumns="True" Margin="80,137,99,15"/>
+
+        <DataGrid ItemsSource="{Binding DisplayedTasks}" AutoGenerateColumns="True" 
+          Margin="80,257,99,15"/>
+
+        <StatusBar Margin="0,0,0,5" VerticalAlignment="Bottom">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText}"/>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>

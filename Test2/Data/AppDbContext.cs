@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Test2.Model;
+using System.Configuration;
 
 namespace Test2.Data
 {
@@ -9,7 +10,8 @@ namespace Test2.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(@"Server=(localdb)\MSSQLLocalDB;Database=TestDb;Trusted_Connection=True;");
+            var connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            optionsBuilder.UseSqlServer(connectionString);
         }
     }
   
