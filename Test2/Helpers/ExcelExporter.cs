@@ -7,6 +7,9 @@ namespace Test2.Helpers
     {
         public async Task ExportAsync(IEnumerable<TaskModel> tasks, string filePath)
         {
+            if (tasks == null || !tasks.Any())
+                throw new InvalidOperationException("Нет данных для экспорта");
+
             await Task.Run(() =>
             {
                 using (var workbook = new XLWorkbook())
