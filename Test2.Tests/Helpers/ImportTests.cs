@@ -1,4 +1,5 @@
 ﻿using Test2.Helpers;
+using Test2.Model;
 
 namespace Test2.Tests.Helpers
 {
@@ -25,7 +26,7 @@ namespace Test2.Tests.Helpers
             await File.WriteAllLinesAsync(tempFile, lines);
 
             // Act - действие
-            var result = await _import.ParseAsync(tempFile);
+            var result = await CollectAsync(_import.ParseAsync(tempFile));
 
             // Assert - проверка
             Assert.Equal(2, result.Count);
@@ -47,7 +48,7 @@ namespace Test2.Tests.Helpers
             await File.WriteAllLinesAsync(tempFile, lines);
 
             // Act
-            var result = await _import.ParseAsync(tempFile);
+            var result = await CollectAsync(_import.ParseAsync(tempFile));
 
             // Assert
             var task = result.First();
@@ -71,7 +72,7 @@ namespace Test2.Tests.Helpers
             await File.WriteAllLinesAsync(tempFile, Array.Empty<string>());
 
             // Act
-            var result = await _import.ParseAsync(tempFile);
+            var result = await CollectAsync(_import.ParseAsync(tempFile));
 
             // Assert
             Assert.Empty(result);
@@ -88,14 +89,14 @@ namespace Test2.Tests.Helpers
             var tempFile = Path.GetTempFileName() + ".csv";
             var lines = new[]
             {
-                "2026-01-15 10:30:00;Иван;Петров;Сергеевич;Витебск;Беларусь", 
-                "2026-01-16;Петр;Сидоров", 
-                "2026-01-17 12:00:00;Анна;Иванова;Сергеевна;Гомель;Беларусь" 
+                "2026-01-15 10:30:00;Иван;Петров;Сергеевич;Витебск;Беларусь",
+                "2026-01-16;Петр;Сидоров",
+                "2026-01-17 12:00:00;Анна;Иванова;Сергеевна;Гомель;Беларусь"
             };
             await File.WriteAllLinesAsync(tempFile, lines);
 
             // Act
-            var result = await _import.ParseAsync(tempFile);
+            var result = await CollectAsync(_import.ParseAsync(tempFile));
 
             // Assert
             Assert.Equal(2, result.Count);
@@ -106,7 +107,7 @@ namespace Test2.Tests.Helpers
 
         // Тест 5 Проверка обработки неверного формата даты 
         [Fact]
-        public async Task ParseAsync_InvalidDateFormat_ThrowsFormatException()
+        public async Task ParseAsync_InvalidDateFormat_IgnoresLine()
         {
             // Arrange
             var tempFile = Path.GetTempFileName() + ".csv";
@@ -116,11 +117,23 @@ namespace Test2.Tests.Helpers
             };
             await File.WriteAllLinesAsync(tempFile, lines);
 
-            // Act & Assert
-            await Assert.ThrowsAsync<FormatException>(() => _import.ParseAsync(tempFile));
+            // Act
+            var result = await CollectAsync(_import.ParseAsync(tempFile));
+
+            // Assert
+            Assert.Empty(result);
 
             // Cleanup
             File.Delete(tempFile);
+        }
+
+        // собирает IAsyncEnumerable в список
+        private static async Task<List<TaskModel>> CollectAsync(IAsyncEnumerable<TaskModel> source)
+        {
+            var list = new List<TaskModel>();
+            await foreach (var item in source)
+                list.Add(item);
+            return list;
         }
     }
 }

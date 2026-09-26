@@ -1,35 +1,58 @@
-﻿using System.Xml.Linq;
+﻿using System.Text;
+using System.Xml;
 using Test2.Model;
-
+using System.IO;
+ 
 namespace Test2.Helpers
-{
-    public class XmlExporter
     {
-        public async Task ExportAsync(IEnumerable<TaskModel> tasks, string filePath)
+        public sealed class XmlExporter : IExporter
         {
-            if (tasks == null || !tasks.Any())
-                throw new InvalidOperationException("Нет данных для экспорта");
+            public string Format => "XML";
+            public string Extension => "xml";
 
-            await Task.Run(() =>
+            public async Task ExportAsync(
+                IAsyncEnumerable<TaskModel> tasks,
+                string filePath,
+                CancellationToken ct = default)
             {
-                var root = new XElement("Tasks");
+                await using var stream = new FileStream(
+                    filePath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: 64 * 1024,
+                    useAsync: true);
 
-                foreach (var task in tasks)
+                var settings = new XmlWriterSettings
                 {
-                    root.Add(new XElement("Task",
-                        new XElement("Id", task.Id),
-                        new XElement("Date", task.Date.ToString("yyyy-MM-dd HH:mm:ss")),
-                        new XElement("Name", task.Name ?? ""),
-                        new XElement("LastName", task.LastName ?? ""),
-                        new XElement("MiddleName", task.MiddleName ?? ""),
-                        new XElement("City", task.City ?? ""),
-                        new XElement("Country", task.Country ?? "")
-                    ));
+                    Async = true,
+                    Indent = true,
+                    Encoding = new UTF8Encoding(false),
+                    CloseOutput = false
+                };
+
+                await using var writer = XmlWriter.Create(stream, settings);
+
+                await writer.WriteStartDocumentAsync();
+                await writer.WriteStartElementAsync(null, "Tasks", null);
+
+                await foreach (var task in tasks.WithCancellation(ct))
+                {
+                    await writer.WriteStartElementAsync(null, "Task", null);
+                    await writer.WriteElementStringAsync(null, "Id", null, task.Id.ToString());
+                    await writer.WriteElementStringAsync(null, "Date", null,
+                        task.Date.ToString("yyyy-MM-dd HH:mm:ss"));
+                    await writer.WriteElementStringAsync(null, "Name", null, task.Name ?? "");
+                    await writer.WriteElementStringAsync(null, "LastName", null, task.LastName ?? "");
+                    await writer.WriteElementStringAsync(null, "MiddleName", null, task.MiddleName ?? "");
+                    await writer.WriteElementStringAsync(null, "City", null, task.City ?? "");
+                    await writer.WriteElementStringAsync(null, "Country", null, task.Country ?? "");
+                    await writer.WriteEndElementAsync();
                 }
 
-                var doc = new XDocument(new XDeclaration("1.0", "utf-8", null), root);
-                doc.Save(filePath);
-            });
+                await writer.WriteEndElementAsync();
+                await writer.WriteEndDocumentAsync();
+                await writer.FlushAsync();
+            }
         }
     }
-}

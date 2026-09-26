@@ -1,9 +1,6 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
-
-namespace Test2.ViewModels
+﻿namespace Test2.ViewModels
 {
-    public class FilterViewModel : INotifyPropertyChanged
+    public sealed class FilterViewModel : BaseViewModel
     {
         private DateTime? _date;
         private string _name = "";
@@ -15,37 +12,37 @@ namespace Test2.ViewModels
         public DateTime? Date
         {
             get => _date;
-            set { _date = value; OnPropertyChanged(); }
+            set => SetProperty(ref _date, value);
         }
 
         public string Name
         {
             get => _name;
-            set { _name = value; OnPropertyChanged(); }
+            set => SetProperty(ref _name, value);
         }
 
         public string LastName
         {
             get => _lastName;
-            set { _lastName = value; OnPropertyChanged(); }
+            set => SetProperty(ref _lastName, value);
         }
 
         public string MiddleName
         {
             get => _middleName;
-            set { _middleName = value; OnPropertyChanged(); }
+            set => SetProperty(ref _middleName, value);
         }
 
         public string City
         {
             get => _city;
-            set { _city = value; OnPropertyChanged(); }
+            set => SetProperty(ref _city, value);
         }
 
         public string Country
         {
             get => _country;
-            set { _country = value; OnPropertyChanged(); }
+            set => SetProperty(ref _country, value);
         }
 
         public bool HasFilters =>
@@ -64,12 +61,6 @@ namespace Test2.ViewModels
             MiddleName = "";
             City = "";
             Country = "";
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
     }
 }

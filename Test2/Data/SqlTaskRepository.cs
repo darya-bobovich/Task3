@@ -7,35 +7,26 @@ using Test2.Model;
 
 namespace Test2.Data
 {
-    public class SqlTaskRepository : IRepository<TaskModel>
+    public sealed class SqlTaskRepository : IRepository<TaskModel>
     {
         private readonly AppDbContext _db;
-        private bool _disposed = false;
+        private bool _disposed;
 
         public SqlTaskRepository()
         {
             _db = new AppDbContext();
         }
+        public Task<List<TaskModel>> GetAllAsync()
+             => _db.TaskModels.ToListAsync();
 
-        public async Task<IEnumerable<TaskModel>> GetAllAsync()
-        {
-            return await _db.TaskModels.ToListAsync();
-        }
+        public ValueTask<TaskModel?> GetByIdAsync(int id)
+            => _db.TaskModels.FindAsync(id);
 
-        public async Task<TaskModel> GetByIdAsync(int id)
-        {
-            return await _db.TaskModels.FindAsync(id);
-        }
+        public Task AddAsync(TaskModel entity)
+            => _db.TaskModels.AddAsync(entity).AsTask();
 
-        public async Task AddAsync(TaskModel entity)
-        {
-            await _db.TaskModels.AddAsync(entity);
-        }
-
-        public async Task AddRangeAsync(IEnumerable<TaskModel> entities)
-        {
-            await _db.TaskModels.AddRangeAsync(entities);
-        }
+        public Task AddRangeAsync(IEnumerable<TaskModel> entities)
+            => _db.TaskModels.AddRangeAsync(entities);
 
         public Task UpdateAsync(TaskModel entity)
         {
@@ -55,18 +46,11 @@ namespace Test2.Data
             await _db.SaveChangesAsync();
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed && disposing)
-            {
-                _db.Dispose();
-            }
-            _disposed = true;
-        }
-
         public void Dispose()
-        {
-            Dispose(true);
+        {   
+            if(_disposed) return;
+            _db.Dispose();
+            _disposed = true;
             GC.SuppressFinalize(this);
         }
     }

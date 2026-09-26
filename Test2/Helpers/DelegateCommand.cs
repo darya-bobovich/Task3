@@ -2,7 +2,7 @@
 
 namespace Test2.Helpers
 {
-    public class DelegateCommand : ICommand
+    public sealed class DelegateCommand : ICommand
     {
         private readonly Action _execute;
 

@@ -2,7 +2,7 @@
 
 namespace Test2.Services
 {
-    public class LocalizationService : ILocalizationService
+    public sealed class LocalizationService : ILocalizationService
     {
         private string _currentCulture = "ru-RU";
 

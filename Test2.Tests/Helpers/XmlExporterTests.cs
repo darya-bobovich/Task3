@@ -25,7 +25,7 @@ namespace Test2.Tests.Helpers
             };
 
             // Act
-            await _exporter.ExportAsync(tasks, tempFile);
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
 
             // Assert
             Assert.True(File.Exists(tempFile));
@@ -54,7 +54,7 @@ namespace Test2.Tests.Helpers
             };
 
             // Act
-            await _exporter.ExportAsync(tasks, tempFile);
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
 
             // Assert
             var xml = XDocument.Load(tempFile);
@@ -76,16 +76,20 @@ namespace Test2.Tests.Helpers
             File.Delete(tempFile);
         }
 
-        // Тест 3 Проверка обработки пустого списка 
+        // Тест 3 Проверка обработки пустого списка
+        // Экспортер теперь создает пустой XML, а не кидает исключение
         [Fact]
-        public async Task ExportAsync_EmptyTasks_ThrowsInvalidOperationException()
+        public async Task ExportAsync_EmptyTasks_CreatesEmptyXml()
         {
             // Arrange
             var tempFile = Path.GetTempFileName() + ".xml";
             var tasks = new List<TaskModel>();
 
-            // Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => _exporter.ExportAsync(tasks, tempFile));
+            // Act
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
+
+            // Assert
+            Assert.True(File.Exists(tempFile));
 
             // Cleanup
             File.Delete(tempFile);
@@ -109,7 +113,7 @@ namespace Test2.Tests.Helpers
             };
 
             // Act
-            await _exporter.ExportAsync(tasks, tempFile);
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
 
             // Assert
             var xml = XDocument.Load(tempFile);
@@ -135,7 +139,7 @@ namespace Test2.Tests.Helpers
             };
 
             // Act
-            await _exporter.ExportAsync(tasks, tempFile);
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
 
             // Assert
             var xmlContent = await File.ReadAllTextAsync(tempFile);
@@ -143,6 +147,14 @@ namespace Test2.Tests.Helpers
 
             // Cleanup
             File.Delete(tempFile);
+        }
+
+        // превращает список в IAsyncEnumerable для экспортера
+        private static async IAsyncEnumerable<TaskModel> ToAsync(IEnumerable<TaskModel> items)
+        {
+            foreach (var item in items)
+                yield return item;
+            await Task.CompletedTask;
         }
     }
 }

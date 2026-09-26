@@ -1,65 +1,92 @@
-﻿using Test2.Model;
-using ClosedXML.Excel;
+﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Test2.Model;
 
 namespace Test2.Helpers
 {
-    public class ExcelExporter
+    public sealed class ExcelExporter : IExporter
     {
-        public async Task ExportAsync(IEnumerable<TaskModel> tasks, string filePath)
+        public string Format => "Excel";
+        public string Extension => "xlsx";
+
+        public Task ExportAsync(
+            IAsyncEnumerable<TaskModel> tasks,
+            string filePath,
+            CancellationToken ct = default)
         {
-            if (tasks == null || !tasks.Any())
-                throw new InvalidOperationException("Нет данных для экспорта");
+            using var document = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook);
 
-            await Task.Run(() =>
+            var workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+
+            var stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            stylesPart.Stylesheet = new Stylesheet(
+                new Fonts(new Font()),
+                new Fills(new Fill()),
+                new Borders(new Border()),
+                new CellFormats(new CellFormat()));
+            stylesPart.Stylesheet.Save();
+
+            var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            var writer = OpenXmlWriter.Create(worksheetPart);
+
+            writer.WriteStartElement(new Worksheet());
+            writer.WriteStartElement(new SheetData());
+
+            writer.WriteStartElement(new Row());
+            WriteCell(writer, "ID");
+            WriteCell(writer, "Дата");
+            WriteCell(writer, "Имя");
+            WriteCell(writer, "Фамилия");
+            WriteCell(writer, "Отчество");
+            WriteCell(writer, "Город");
+            WriteCell(writer, "Страна");
+            writer.WriteEndElement();
+
+            var enumerator = tasks.GetAsyncEnumerator(ct);
+            try
             {
-                using (var workbook = new XLWorkbook())
+                while (enumerator.MoveNextAsync().AsTask().GetAwaiter().GetResult())
                 {
-                    var worksheet = workbook.Worksheets.Add("Tasks");
-                    var headers = new[] { "ID", "Дата", "Имя", "Фамилия", "Отчество", "Город", "Страна" };
-
-                    for (int i = 0; i < headers.Length; i++)
-                    {
-                        worksheet.Cell(1, i + 1).Value = headers[i];
-                    }
-
-                    var headerRange = worksheet.Range(1, 1, 1, headers.Length);
-                    headerRange.Style.Font.Bold = true;                          
-                    headerRange.Style.Font.FontColor = XLColor.Black;           
-                    headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center; 
-                    headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;    
-
-                    int row = 2;
-                    foreach (var task in tasks)
-                    {
-                        worksheet.Cell(row, 1).Value = task.Id;                                    
-                        worksheet.Cell(row, 2).Value = task.Date.ToString("yyyy-MM-dd HH:mm:ss"); 
-                        worksheet.Cell(row, 3).Value = task.Name ?? "";                           
-                        worksheet.Cell(row, 4).Value = task.LastName ?? "";                       
-                        worksheet.Cell(row, 5).Value = task.MiddleName ?? "";                    
-                        worksheet.Cell(row, 6).Value = task.City ?? "";                          
-                        worksheet.Cell(row, 7).Value = task.Country ?? "";                       
-                        row++;
-                    }
-
-                    var dataRange = worksheet.Range(1, 1, row - 1, headers.Length);
-                    dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin; 
-                    dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin; 
-
-                    worksheet.Columns().AdjustToContents();
-
-                    for (int i = 1; i <= headers.Length; i++)
-                    {
-                        if (worksheet.Column(i).Width < 15)
-                        {
-                            worksheet.Column(i).Width = 15;
-                        }
-                    }
-
-                    worksheet.Row(1).Height = 25;
-                    worksheet.SheetView.FreezeRows(1);
-                    workbook.SaveAs(filePath);
+                    var task = enumerator.Current;
+                    writer.WriteStartElement(new Row());
+                    WriteCell(writer, task.Id.ToString());
+                    WriteCell(writer, task.Date.ToString("yyyy-MM-dd HH:mm:ss"));
+                    WriteCell(writer, task.Name ?? "");
+                    WriteCell(writer, task.LastName ?? "");
+                    WriteCell(writer, task.MiddleName ?? "");
+                    WriteCell(writer, task.City ?? "");
+                    WriteCell(writer, task.Country ?? "");
+                    writer.WriteEndElement();
                 }
+            }
+            finally
+            {
+                enumerator.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
+
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+            writer.Close();
+
+            var sheets = workbookPart.Workbook.AppendChild(new Sheets());
+            sheets.Append(new Sheet
+            {
+                Id = workbookPart.GetIdOfPart(worksheetPart),
+                SheetId = 1,
+                Name = "Tasks"
             });
+
+            workbookPart.Workbook.Save();
+            return Task.CompletedTask;
+        }
+
+        private static void WriteCell(OpenXmlWriter writer, string value)
+        {
+            writer.WriteStartElement(new Cell { DataType = CellValues.InlineString });
+            writer.WriteElement(new InlineString(new Text(value)));
+            writer.WriteEndElement();
         }
     }
 }

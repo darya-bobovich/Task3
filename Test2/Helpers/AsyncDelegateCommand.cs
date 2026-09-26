@@ -2,7 +2,7 @@
 
 namespace Test2.Helpers
 {
-    public class AsyncDelegateCommand : ICommand
+    public sealed class AsyncDelegateCommand : ICommand
     {
         private readonly Func<object, Task> _execute;
         private bool _isExecuting;

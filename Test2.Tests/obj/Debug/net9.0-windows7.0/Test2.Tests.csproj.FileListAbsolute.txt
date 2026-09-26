@@ -1,11 +1,5 @@
 D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\.msCoverageSourceRootsMapping_Test2.Tests
 D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\CoverletSourceRootsMapping_Test2.Tests
-D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.csproj.AssemblyReference.cache
-D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.GeneratedMSBuildEditorConfig.editorconfig
-D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.AssemblyInfoInputs.cache
-D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.AssemblyInfo.cs
-D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.csproj.CoreCompileInputs.cache
-D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.sourcelink.json
 D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\testhost.dll
 D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\Test2.deps.json
 D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\Test2.runtimeconfig.json
@@ -248,6 +242,12 @@ D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\Test2.dll
 D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\Test2.pdb
 D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\Test2.dll.config
 D:\stazirovka\Test2\Test2.Tests\bin\Debug\net9.0-windows7.0\en\Test2.resources.dll
+D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.csproj.AssemblyReference.cache
+D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.GeneratedMSBuildEditorConfig.editorconfig
+D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.AssemblyInfoInputs.cache
+D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.AssemblyInfo.cs
+D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.csproj.CoreCompileInputs.cache
+D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.sourcelink.json
 D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Te.930349C3.Up2Date
 D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\Test2.Tests.dll
 D:\stazirovka\Test2\Test2.Tests\obj\Debug\net9.0-windows7.0\refint\Test2.Tests.dll

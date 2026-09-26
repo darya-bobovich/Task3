@@ -31,7 +31,7 @@ namespace Test2.Tests.Helpers
             };
 
             // Act
-            await _exporter.ExportAsync(tasks, tempFile);
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
 
             // Assert
             Assert.True(File.Exists(tempFile));
@@ -60,7 +60,7 @@ namespace Test2.Tests.Helpers
             };
 
             // Act
-            await _exporter.ExportAsync(tasks, tempFile);
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
 
             // Assert
             using (var workbook = new XLWorkbook(tempFile))
@@ -68,30 +68,34 @@ namespace Test2.Tests.Helpers
                 var worksheet = workbook.Worksheet(1);
 
                 // Проверяем заголовки
-                Assert.Equal("ID", worksheet.Cell(1, 1).Value);
-                Assert.Equal("Имя", worksheet.Cell(1, 3).Value);
+                Assert.Equal("ID", worksheet.Cell(1, 1).Value.GetText());
+                Assert.Equal("Имя", worksheet.Cell(1, 3).Value.GetText());
 
                 // Проверяем данные
-                Assert.Equal(1, worksheet.Cell(2, 1).Value);
-                Assert.Equal("Иван", worksheet.Cell(2, 3).Value);
-                Assert.Equal("Иванов", worksheet.Cell(2, 4).Value);
-                Assert.Equal("Гомель", worksheet.Cell(2, 6).Value);
+                Assert.Equal("1", worksheet.Cell(2, 1).Value.GetText());
+                Assert.Equal("Иван", worksheet.Cell(2, 3).Value.GetText());
+                Assert.Equal("Иванов", worksheet.Cell(2, 4).Value.GetText());
+                Assert.Equal("Гомель", worksheet.Cell(2, 6).Value.GetText());
             }
 
             // Cleanup
             File.Delete(tempFile);
         }
 
-        // Проверка на обработку пустого списка 
+        // Тест 3 Проверка на обработку пустого списка
+        // Экспортер теперь не кидает исключение, а создает пустой файл
         [Fact]
-        public async Task ExportAsync_EmptyTasks_ThrowsInvalidOperationException()
+        public async Task ExportAsync_EmptyTasks_CreatesEmptyFile()
         {
             // Arrange
             var tempFile = Path.GetTempFileName() + ".xlsx";
             var tasks = new List<TaskModel>();
 
-            // Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => _exporter.ExportAsync(tasks, tempFile));
+            // Act
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
+
+            // Assert
+            Assert.True(File.Exists(tempFile));
 
             // Cleanup
             File.Delete(tempFile);
@@ -115,19 +119,27 @@ namespace Test2.Tests.Helpers
             };
 
             // Act
-            await _exporter.ExportAsync(tasks, tempFile);
+            await _exporter.ExportAsync(ToAsync(tasks), tempFile);
 
             // Assert
             using (var workbook = new XLWorkbook(tempFile))
             {
                 var worksheet = workbook.Worksheet(1);
                 // Name и LastName должны быть пустыми
-                Assert.Equal("", worksheet.Cell(2, 3).Value); 
-                Assert.Equal("", worksheet.Cell(2, 4).Value); 
+                Assert.Equal("", worksheet.Cell(2, 3).Value);
+                Assert.Equal("", worksheet.Cell(2, 4).Value);
             }
 
             // Cleanup
             File.Delete(tempFile);
+        }
+
+        // превращает список в IAsyncEnumerable для экспортера
+        private static async IAsyncEnumerable<TaskModel> ToAsync(IEnumerable<TaskModel> items)
+        {
+            foreach (var item in items)
+                yield return item;
+            await Task.CompletedTask;
         }
     }
 }

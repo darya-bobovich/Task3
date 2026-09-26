@@ -1,34 +1,40 @@
 ﻿using System.IO;
+using System.Runtime.CompilerServices;
 using Test2.Model;
 
 namespace Test2.Helpers
 {
-    public class Import
+    public sealed class Import : IImporter
     {
-        public async Task<List<TaskModel>> ParseAsync(string filePath)
+        // поток записей отдаём по 1
+        public async IAsyncEnumerable<TaskModel> ParseAsync(
+            string filePath,
+            [EnumeratorCancellation] CancellationToken ct = default)
         {
-            var lines = await File.ReadAllLinesAsync(filePath);
-            var tasks = new List<TaskModel>();
+            using var reader = new StreamReader(filePath);
 
-            foreach (var line in lines)
+            string? line;
+            // асинхронное чтение 1 строки
+            while ((line = await reader.ReadLineAsync(ct)) != null)
             {
+                ct.ThrowIfCancellationRequested();
+
                 var parts = line.Split(';');
+                if (parts.Length < 6) continue;
 
-                if (parts.Length >= 6)
+                if (!DateTime.TryParse(parts[0], out var date)) continue;
+
+                // отдаём 1 запись наружу и замираем до следующего запроса
+                yield return new TaskModel
                 {
-                    tasks.Add(new TaskModel
-                    {
-                        Date = DateTime.Parse(parts[0]),   
-                        Name = parts[1],                 
-                        LastName = parts[2],              
-                        MiddleName = parts[3],             
-                        City = parts[4],                   
-                        Country = parts[5]                 
-                    });
-                }
+                    Date = date,
+                    Name = parts[1],
+                    LastName = parts[2],
+                    MiddleName = parts[3],
+                    City = parts[4],
+                    Country = parts[5]
+                };
             }
-
-            return tasks;
         }
     }
 }
